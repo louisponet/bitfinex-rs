@@ -52,7 +52,7 @@ impl Ledger {
             limit: limit,
         };
 
-        let data = self.client.post_signed_params(request, payload, &params)?;
+        let data = self.client.post_signed_params(request, payload, &params, false)?;
 
         let entry: Vec<Entry> = from_str(data.as_str())?;
 

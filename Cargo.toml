@@ -27,4 +27,4 @@ ring = "0.16"
 reqwest = "0.9"
 url = "2.1"
 log = "0.3"
-tungstenite = "0.9"
+tungstenite = { version = "0.18.0", features = ["native-tls"] }

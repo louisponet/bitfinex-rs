@@ -32,7 +32,11 @@ pub enum DataEvent {
     RawBookUpdateEvent (i32, Vec<RawBook>),
     CandlesSnapshotEvent (i32, Vec<Candle>),
     CandlesUpdateEvent (i32, Candle),
-    HeartbeatEvent (i32, String)
+    HeartbeatEvent (i32, String),
+    PositionSnapshotEvent (i32, String, Vec<PositionUpdate>),
+    WalletsSnapshotEvent (i32, String, Vec<WalletUpdate>),
+    WalletsUpdateEvent (i32, String, WalletUpdate),
+    BalanceUpdateEvent( i32, String, BalanceUpdate)
 }
 
 #[serde(rename_all = "camelCase")]
@@ -107,4 +111,64 @@ pub struct RawBookSubscriptionMessage {
     pub freq: String,
     pub len: String,
     pub pair: String
+
 }
+
+#[serde(rename_all = "camelCase")]
+#[derive(Debug, Deserialize)]
+pub struct PositionUpdate {
+    pub symbol: String,
+    pub status: String,
+    pub diff: f64,
+    pub base_price: f64,
+    pub margin_funding: f64,
+    pub margin_funding_type: u64,
+    pub pl: f64,
+    pub pl_perc: f64,
+    pub price_liq: f64,
+    pub position_id: u64,
+    pub mts_create: u64,
+    pub mts_update: u64,
+    pub collateral: f64,
+    pub collateral_min: f64,
+    pub meta: String
+}
+
+#[serde(rename_all = "camelCase")]
+#[derive(Debug, Deserialize)]
+pub struct WalletUpdate {
+    pub wallet_type: String,
+    pub currency: String,
+    pub balance: f64,
+    pub unsettled_interest: f64,
+    pub balance_available: Option<f64>,
+    pub description: Option<String>,
+    pub meta: Option<String>,
+}
+
+#[serde(rename_all = "camelCase")]
+#[derive(Debug, Deserialize)]
+pub struct TradeUpdate {
+    pub id: u64,
+    pub cid: u64,
+    pub symbol: String,
+    pub mts_create: u64,
+    pub order_id: u64,
+    pub exec_amount: f64,
+    pub exec_price: f64,
+    pub order_type: String,
+    pub order_price: f64,
+    pub maker: Option<bool>,
+    pub fee: Option<f64>,
+    pub fee_currency: Option<String>
+}
+
+
+#[serde(rename_all = "camelCase")]
+#[derive(Debug, Deserialize)]
+pub struct BalanceUpdate {
+    pub aum: f64,
+    pub aum_net: f64,
+}
+
+
