@@ -26,7 +26,7 @@ mod trades;
 mod orders;
 mod account;
 mod ledger;
-mod auth;
+pub mod auth;
 mod client;
 
 pub mod model;

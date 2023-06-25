@@ -83,23 +83,27 @@ impl WebSockets {
     where
         S: AsRef<str>,
     {
-        let nonce = auth::generate_nonce()?;
-        let auth_payload = format!("AUTH{}", nonce);
-        let signature =
-            auth::sign_payload(api_secret.as_ref().as_bytes(), auth_payload.as_bytes())?;
 
-        let msg = json!({
-            "event": "auth",
-            "apiKey": api_key.as_ref(),
-            "authSig": signature,
-            "authNonce": nonce,
-            "authPayload": auth_payload,
-            "dms": if dms {Some(DEAD_MAN_SWITCH_FLAG)} else {None},
-            "filters": filters,
-        });
+        match self.socket {
+            None => return Err(crate::errors::ErrorKind::Internal("authenticate first".to_string()).into()),
+            Some((ref mut socket, _)) =>{
+                let nonce = auth::generate_nonce()?;
+                let auth_payload = format!("AUTH{}", nonce);
+                let signature =
+                    auth::sign_payload(api_secret.as_ref().as_bytes(), auth_payload.as_bytes())?;
 
-        if let Err(error_msg) = self.sender.send(&msg.to_string()) {
-            self.error_hander(error_msg);
+                let msg = json!({
+                    "event": "auth",
+                    "apiKey": api_key.as_ref(),
+                    "authSig": signature,
+                    "authNonce": nonce,
+                    "authPayload": auth_payload,
+                    "dms": if dms {Some(DEAD_MAN_SWITCH_FLAG)} else {None},
+                    "filters": filters,
+                });
+
+                socket.write_message(Message::Text(msg.to_string()))?;
+            }
         }
 
         Ok(())
@@ -216,22 +220,16 @@ impl WebSockets {
                 }
 
                 let message = socket.0.read_message()?;
-                println!("{:?}", message);
                 match message {
                     Message::Text(text) => {
-                        //     if let Some(ref mut h) = self.event_handler {
                         if text.find(INFO) != None {
                             let event: NotificationEvent = serde_json::from_str(&text)?;
-                            //             h.on_connect(event);
-                            println!("{:?}", event);
                         } else if text.find(SUBSCRIBED) != None {
                             let event: NotificationEvent = serde_json::from_str(&text)?;
-                            //             h.on_subscribed(event);
                             println!("{:?}", event);
                         } else if text.find(AUTH).is_some() {
                             let event: NotificationEvent = serde_json::from_str(&text)?;
                             println!("{:?}", event);
-                        //             h.on_auth(event);
                         } else {
                             let event: DataEvent = serde_json::from_str(&text)?;
                             if let DataEvent::HeartbeatEvent(_a, _b) = event {
