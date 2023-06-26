@@ -10,7 +10,7 @@ pub struct Wallet {
     pub unsettled_interest: f64,
     pub balance_available: Option<f64>,
     pub description: Option<String>,
-    pub meta: Option<String>
+    pub meta: Option<serde_json::Value>
 }
 
 #[derive(Serialize, Deserialize)]
@@ -81,7 +81,6 @@ impl Account {
     pub fn get_wallets(&self) -> Result<Vec<Wallet>> {
         let payload: String = format!("{}", "{}");
         let data = self.client.post_signed("wallets".into(), payload)?;
-        println!("{data:?}");
 
         let wallets: Vec<Wallet> = from_str(data.as_str())?;
 
