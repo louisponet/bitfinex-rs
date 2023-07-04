@@ -91,16 +91,28 @@ impl WebSockets {
                 let auth_payload = format!("AUTH{}", nonce);
                 let signature =
                     auth::sign_payload(api_secret.as_ref().as_bytes(), auth_payload.as_bytes())?;
+                let msg = if filters.len() != 0 {
+                    json!({
+                        "event": "auth",
+                        "apiKey": api_key.as_ref(),
+                        "authSig": signature,
+                        "authNonce": nonce,
+                        "authPayload": auth_payload,
+                        "dms": if dms {Some(DEAD_MAN_SWITCH_FLAG)} else {None},
+                        "filter": filters,
+                    })
+                } else {
+                    json!({
+                        "event": "auth",
+                        "apiKey": api_key.as_ref(),
+                        "authSig": signature,
+                        "authNonce": nonce,
+                        "authPayload": auth_payload,
+                        "dms": if dms {Some(DEAD_MAN_SWITCH_FLAG)} else {None},
+                    })
+                };
 
-                let msg = json!({
-                    "event": "auth",
-                    "apiKey": api_key.as_ref(),
-                    "authSig": signature,
-                    "authNonce": nonce,
-                    "authPayload": auth_payload,
-                    "dms": if dms {Some(DEAD_MAN_SWITCH_FLAG)} else {None},
-                    "filters": filters,
-                });
+                println!("auth msg {msg}");
 
                 socket.write_message(Message::Text(msg.to_string()))?;
             }
