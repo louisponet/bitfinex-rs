@@ -4,7 +4,6 @@ use events::*;
 use tungstenite::stream::MaybeTlsStream;
 use url::Url;
 
-use tungstenite::handshake::client::Response;
 use tungstenite::protocol::WebSocket;
 use tungstenite::{connect, Message};
 
@@ -37,7 +36,7 @@ pub enum WsMessage {
 }
 
 pub struct WebSockets {
-    pub socket: Option<(WebSocket<MaybeTlsStream<TcpStream>>, Response)>,
+    pub socket: Option<WebSocket<MaybeTlsStream<TcpStream>>>,
     sender: Sender,
     pub rx: mpsc::Receiver<WsMessage>,
 }
@@ -59,8 +58,14 @@ impl WebSockets {
         let url = Url::parse(&wss)?;
 
         match connect(url) {
-            Ok(answer) => {
-                self.socket = Some(answer);
+            Ok((mut socket, response)) => {
+                match socket.get_mut() {
+                    MaybeTlsStream::NativeTls(t) => {
+                        t.get_mut().set_nonblocking(true).unwrap();
+                    },
+                    _ => panic!("Error: it is not TlsStream")
+                }
+                self.socket = Some(socket);
                 Ok(())
             }
             Err(e) => {
@@ -86,7 +91,7 @@ impl WebSockets {
 
         match self.socket {
             None => return Err(crate::errors::ErrorKind::Internal("authenticate first".to_string()).into()),
-            Some((ref mut socket, _)) =>{
+            Some(ref mut socket) =>{
                 let nonce = auth::generate_nonce()?;
                 let auth_payload = format!("AUTH{}", nonce);
                 let signature =
@@ -218,10 +223,10 @@ impl WebSockets {
                     match self.rx.try_recv() {
                         Ok(msg) => match msg {
                             WsMessage::Text(text) => {
-                                socket.0.write_message(Message::Text(text))?;
+                                socket.write_message(Message::Text(text))?;
                             }
                             WsMessage::Close => {
-                                return socket.0.close(None).map_err(|e| e.into());
+                                return socket.close(None).map_err(|e| e.into());
                             }
                         },
                         Err(mpsc::TryRecvError::Disconnected) => {
@@ -231,7 +236,7 @@ impl WebSockets {
                     }
                 }
 
-                let message = socket.0.read_message()?;
+                let message = socket.read_message()?;
                 match message {
                     Message::Text(text) => {
                         if text.find(INFO) != None {
